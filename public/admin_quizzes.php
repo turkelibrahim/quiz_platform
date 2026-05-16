@@ -29,60 +29,93 @@ $stmt = $pdo->query("SELECT * FROM quizzes ORDER BY created_at DESC");
 $quizzes = $stmt->fetchAll();
 ?>
 
-<h1>Admin: Manage Quizzes</h1>
+<div class="dashboard-header">
+    <h1>Admin Panel: Quiz Management</h1>
+    <p class="text-muted">Create, edit, and manage your platform's quizzes.</p>
+</div>
 
-<h2>Create New Quiz</h2>
-
-<?php if (!empty($errors)): ?>
-    <div class="alert error">
-        <?php foreach ($errors as $e): ?><p><?= htmlspecialchars($e) ?></p><?php endforeach; ?>
+<div class="stats-grid">
+    <div class="stat-card">
+        <span class="stat-value"><?= count($quizzes) ?></span>
+        <span class="stat-label">Total Quizzes</span>
     </div>
-<?php endif; ?>
+    <div class="stat-card">
+        <span class="stat-value"><?= count(array_filter($quizzes, fn($q) => $q['is_active'])) ?></span>
+        <span class="stat-label">Active Quizzes</span>
+    </div>
+</div>
 
-<form method="post" class="card form-card">
-    <label>Title
-        <input type="text" name="title" required>
-    </label>
-    <label>Subject
-        <select name="subject" required>
-            <option value="Math">Math</option>
-            <option value="Science">Science</option>
-            <option value="General Knowledge">General Knowledge</option>
-        </select>
-    </label>
-    <label>Time Limit (seconds)
-        <input type="number" name="time_limit" min="30" required>
-    </label>
-    <label>Description
-        <textarea name="description" rows="3"></textarea>
-    </label>
-    <button type="submit">Create Quiz</button>
-</form>
+<div class="dashboard-content">
+    <section class="card form-card">
+        <h2>➕ Create New Quiz</h2>
+        <?php if (!empty($errors)): ?>
+            <div class="alert error">
+                <?php foreach ($errors as $e): ?><p><?= htmlspecialchars($e) ?></p><?php endforeach; ?>
+            </div>
+        <?php endif; ?>
 
-<h2>Existing Quizzes</h2>
-<table class="table">
-    <thead>
-    <tr>
-        <th>Title</th>
-        <th>Subject</th>
-        <th>Time Limit</th>
-        <th>Active</th>
-        <th>Actions</th>
-    </tr>
-    </thead>
-    <tbody>
-    <?php foreach ($quizzes as $q): ?>
-        <tr>
-            <td><?= htmlspecialchars($q['title']) ?></td>
-            <td><?= htmlspecialchars($q['subject']) ?></td>
-            <td><?= (int)$q['time_limit'] ?>s</td>
-            <td><?= $q['is_active'] ? 'Yes' : 'No' ?></td>
-            <td>
-                <a href="admin_questions.php?quiz_id=<?= $q['id'] ?>">Questions</a>
-            </td>
-        </tr>
-    <?php endforeach; ?>
-    </tbody>
-</table>
+        <form method="post" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div style="grid-column: span 2;">
+                <label>Quiz Title</label>
+                <input type="text" name="title" placeholder="e.g. Advanced Calculus" required>
+            </div>
+            <div>
+                <label>Subject Category</label>
+                <select name="subject" required>
+                    <option value="Math">Math</option>
+                    <option value="Science">Science</option>
+                    <option value="General Knowledge">General Knowledge</option>
+                </select>
+            </div>
+            <div>
+                <label>Time Limit (seconds)</label>
+                <input type="number" name="time_limit" min="30" value="300" required>
+            </div>
+            <div style="grid-column: span 2;">
+                <label>Description</label>
+                <textarea name="description" rows="3" placeholder="Briefly describe what this quiz covers..."></textarea>
+            </div>
+            <div style="grid-column: span 2; margin-top: 0.5rem;">
+                <button type="submit" class="btn">Create Quiz & Add Questions</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>📋 Existing Quizzes</h2>
+        <div style="overflow-x: auto;">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Subject</th>
+                    <th>Time Limit</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($quizzes as $q): ?>
+                    <tr>
+                        <td><strong><?= htmlspecialchars($q['title']) ?></strong></td>
+                        <td><span class="meta"><?= htmlspecialchars($q['subject']) ?></span></td>
+                        <td><?= (int)$q['time_limit'] ?>s</td>
+                        <td>
+                            <span style="display: inline-block; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; background: <?= $q['is_active'] ? '#dcfce7' : '#fee2e2' ?>; color: <?= $q['is_active'] ? '#166534' : '#991b1b' ?>;">
+                                <?= $q['is_active'] ? 'ACTIVE' : 'INACTIVE' ?>
+                            </span>
+                        </td>
+                        <td>
+                            <a href="admin_questions.php?quiz_id=<?= $q['id'] ?>" class="btn secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                                Edit Questions
+                            </a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
 
 <?php include '../includes/footer.php'; ?>
