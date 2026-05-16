@@ -2,9 +2,24 @@
 require_once '../config/db.php';
 require_once '../includes/auth.php';
 require_admin();
-include '../includes/header.php';
 
 $errors = [];
+$success = "";
+
+// Handle Delete/Toggle Actions
+if (isset($_GET['action']) && isset($_GET['id'])) {
+    $id = (int)$_GET['id'];
+    if ($_GET['action'] === 'delete') {
+        $stmt = $pdo->prepare("DELETE FROM quizzes WHERE id = ?");
+        $stmt->execute([$id]);
+        $success = "Quiz deleted successfully.";
+    } elseif ($_GET['action'] === 'toggle') {
+        $stmt = $pdo->prepare("UPDATE quizzes SET is_active = NOT is_active WHERE id = ?");
+        $stmt->execute([$id]);
+        $success = "Quiz status updated.";
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
@@ -27,12 +42,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $stmt = $pdo->query("SELECT * FROM quizzes ORDER BY created_at DESC");
 $quizzes = $stmt->fetchAll();
+
+$stmtUsers = $pdo->query("SELECT COUNT(*) FROM users");
+$total_users = $stmtUsers->fetchColumn();
+
+include '../includes/header.php';
 ?>
 
 <div class="dashboard-header">
     <h1>Admin Panel: Quiz Management</h1>
     <p class="text-muted">Create, edit, and manage your platform's quizzes.</p>
 </div>
+
+<?php if ($success): ?>
+    <div class="card" style="background: #dcfce7; color: #166534; border: 1px solid #22c55e; padding: 1rem; margin-bottom: 1.5rem; border-radius: 12px;">
+        ✅ <?= htmlspecialchars($success) ?>
+    </div>
+<?php endif; ?>
 
 <div class="stats-grid">
     <div class="stat-card">
@@ -42,6 +68,10 @@ $quizzes = $stmt->fetchAll();
     <div class="stat-card">
         <span class="stat-value"><?= count(array_filter($quizzes, fn($q) => $q['is_active'])) ?></span>
         <span class="stat-label">Active Quizzes</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-value"><?= $total_users ?></span>
+        <span class="stat-label">Total Users</span>
     </div>
 </div>
 
@@ -101,14 +131,21 @@ $quizzes = $stmt->fetchAll();
                         <td><span class="meta"><?= htmlspecialchars($q['subject']) ?></span></td>
                         <td><?= (int)$q['time_limit'] ?>s</td>
                         <td>
-                            <span style="display: inline-block; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; background: <?= $q['is_active'] ? '#dcfce7' : '#fee2e2' ?>; color: <?= $q['is_active'] ? '#166534' : '#991b1b' ?>;">
-                                <?= $q['is_active'] ? 'ACTIVE' : 'INACTIVE' ?>
-                            </span>
+                            <a href="?action=toggle&id=<?= $q['id'] ?>" style="text-decoration: none;">
+                                <span style="display: inline-block; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; background: <?= $q['is_active'] ? '#dcfce7' : '#fee2e2' ?>; color: <?= $q['is_active'] ? '#166534' : '#991b1b' ?>; cursor: pointer;">
+                                    <?= $q['is_active'] ? 'ACTIVE' : 'INACTIVE' ?>
+                                </span>
+                            </a>
                         </td>
                         <td>
-                            <a href="admin_questions.php?quiz_id=<?= $q['id'] ?>" class="btn secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
-                                Edit Questions
-                            </a>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <a href="admin_questions.php?quiz_id=<?= $q['id'] ?>" class="btn secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                                    Questions
+                                </a>
+                                <a href="?action=delete&id=<?= $q['id'] ?>" class="btn secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; border-color: #ef4444; color: #ef4444;" onclick="return confirm('Are you sure you want to delete this quiz?')">
+                                    Delete
+                                </a>
+                            </div>
                         </td>
                     </tr>
                 <?php endforeach; ?>
